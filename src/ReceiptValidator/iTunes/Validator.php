@@ -142,7 +142,7 @@ class Validator
      */
 	protected function createClient()
 	{
-		$client = Curl();
+		$client = new Curl();
 		$client->setVerifyPeer(false);
 		$browser = new Browser($client);
 
@@ -158,7 +158,7 @@ class Validator
     {
         $request = array('receipt-data' => $this->getReceiptData());
 
-        if( !is_null( $this->getIStoreSharedSecret() ) ) {
+        if( !is_null( $test = $this->getIStoreSharedSecret() ) ) {
             $request['password'] = $this->getIStoreSharedSecret();
         }
 
@@ -184,13 +184,13 @@ class Validator
             $this->setIStoreSharedSecret($iStoreSharedSecret);
         }
 
-        $httpResponse = $this->getClient()->post($this->_endpoint, null, $this->encodeRequest());
+        $httpResponse = $this->getClient()->post($this->_endpoint, array(), $this->encodeRequest());
 
         if ($httpResponse->getStatusCode() != 200) {
             throw new RunTimeException('Unable to get response from itunes server');
         }
 
-        $response = new Response($httpResponse->json());
+        $response = new Response(json_decode($httpResponse->getContent(), true));
 
         // on a 21007 error retry the request in the sandbox environment (if the current environment is Production)
         // these are receipts from apple review team
@@ -198,13 +198,13 @@ class Validator
             $client = $this->createClient();
 
 //            $httpResponse = $client->post(null, null, $this->encodeRequest(), array('verify' => false))->send();
-            $httpResponse = $client->post(self::ENDPOINT_SANDBOX, null, $this->encodeRequest());
+            $httpResponse = $client->post(self::ENDPOINT_SANDBOX, array(), $this->encodeRequest());
 
             if ($httpResponse->getStatusCode() != 200) {
                 throw new RunTimeException('Unable to get response from itunes server');
             }
 
-            $response = new Response($httpResponse->json());
+            $response = new Response(json_decode($httpResponse->getContent(), true));
         }
 
         return $response;

@@ -116,7 +116,7 @@ class Validator
     public function validate()
     {
 
-        $httpResponse = $this->getClient()->get(sprintf("developer/%s/user/%s/receiptId/%s", $this->_developerSecret, $this->_userId, $this->_receiptId), null, ['exceptions' => false])->send();
+        $httpResponse = $this->getClient()->get(sprintf("developer/%s/user/%s/receiptId/%s", $this->_developerSecret, $this->_userId, $this->_receiptId), null, array('exceptions' => false))->send();
 
         return new Response($httpResponse->getStatusCode(), $httpResponse->json());
     }

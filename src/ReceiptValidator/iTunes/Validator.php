@@ -1,7 +1,9 @@
 <?php
 namespace ReceiptValidator\iTunes;
 
-use Guzzle\Http\Client as GuzzleClient;
+//use Guzzle\Http\Client as GuzzleClient;
+use Buzz\Client\Curl;
+use Buzz\Browser;
 use ReceiptValidator\iTunes\Response;
 use ReceiptValidator\RunTimeException;
 
@@ -91,7 +93,7 @@ class Validator
     public function setIStoreSharedSecret($iStoreSharedSecret)
     {
         $this->_iStoreSharedSecret = $iStoreSharedSecret;
-    
+
         return $this;
     }
 
@@ -119,18 +121,33 @@ class Validator
     }
 
     /**
-     * returns the Guzzle client
+     * returns the Buzz Browser client
      *
-     * @return \Guzzle\Http\Client
+     * @return \Buzz\Browser
      */
     protected function getClient()
     {
         if ($this->_client == null) {
-            $this->_client = new GuzzleClient($this->_endpoint);
+//            $this->_client = new GuzzleClient($this->_endpoint);
+			$this->_client = $this->createClient();
         }
 
         return $this->_client;
     }
+
+	/**
+     * returns the Buzz Browser client
+     *
+     * @return \Buzz\Browser
+     */
+	protected function createClient()
+	{
+		$client = Curl();
+		$client->setVerifyPeer(false);
+		$browser = new Browser($client);
+
+		return $browser;
+	}
 
     /**
      * encode the request in json
@@ -167,7 +184,7 @@ class Validator
             $this->setIStoreSharedSecret($iStoreSharedSecret);
         }
 
-        $httpResponse = $this->getClient()->post(null, null, $this->encodeRequest(), array('verify' => false))->send();
+        $httpResponse = $this->getClient()->post($this->_endpoint, null, $this->encodeRequest());
 
         if ($httpResponse->getStatusCode() != 200) {
             throw new RunTimeException('Unable to get response from itunes server');
@@ -178,9 +195,10 @@ class Validator
         // on a 21007 error retry the request in the sandbox environment (if the current environment is Production)
         // these are receipts from apple review team
         if ($this->_endpoint == self::ENDPOINT_PRODUCTION && $response->getResultCode() == Response::RESULT_SANDBOX_RECEIPT_SENT_TO_PRODUCTION) {
-            $client = new GuzzleClient(self::ENDPOINT_SANDBOX);
+            $client = $this->createClient();
 
-            $httpResponse = $client->post(null, null, $this->encodeRequest(), array('verify' => false))->send();
+//            $httpResponse = $client->post(null, null, $this->encodeRequest(), array('verify' => false))->send();
+            $httpResponse = $client->post(self::ENDPOINT_SANDBOX, null, $this->encodeRequest());
 
             if ($httpResponse->getStatusCode() != 200) {
                 throw new RunTimeException('Unable to get response from itunes server');
